@@ -1,0 +1,7 @@
+settings.py
+secrets.py
+*.sqlite3
+
+hidden/
+
+*.pyc

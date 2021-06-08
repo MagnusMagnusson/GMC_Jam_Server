@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <title>Lol</title>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@3.3.2/dist/chart.min.js"></script>
+    </head>
+    <body>
+        <style>
+            #market-wrapper{
+                width: 100vw;
+                height:750px;
+                top: 60em;
+                position: absolute;
+            }
+            #market{
+                background-color:white;
+            }
+
+            body{
+               background-color: rgb(00,140,250);
+                color:white;
+            }
+            table{
+                text-align: center;
+                margin-top:2em;
+            }
+            .nr{
+                text-align: right;
+                padding-left:2em;
+                font-variant-numeric: tabular-nums;
+            }
+            #left{
+                float:left;
+                width:45%;
+            }
+            #right{
+                float:right;
+                width:45%;
+            }
+            li{
+                border: 1px dashed white;
+                padding: 0.5em;
+                width: 50%;
+                margin: 0.5em;
+            }
+        </style>
+        <div>
+            <div id="left">
+                <h3>Yoyocoin Market Leaderboard</h3><br>
+                <i>I'm putting all my web development experience and skill on display here. I get paid to make websites. If you want a website just like this perfect example of modern web development, contact me.   I'm reasonably overpriced</i>
+                <table>
+                    <thead>
+                        <th>Investor</th>
+                        <th>Liquid Funds</th>
+                        <th>Portfolio Value</th>
+                        <th>Total</th>
+                    </thead>
+                    {% for inv in investors %}
+                        <tr>
+                            <td>{{inv.name}}</td> 
+                            <td class="nr">${{inv.money}}</td>
+                            <td class="nr">${{inv.portfolio}}</td>
+                            <td class="nr">${{inv.total}}</td>
+                        </tr>
+                    
+                    {% endfor %}
+                </table>
+            </div>
+            <div id="right">
+                <h3>Kwittr network</h3>
+                <ol>
+                    {% for tweet in tweets reversed%}
+                        <li>
+                            <b>{{tweet.title}}</b> <br/>
+                            <small>{{tweet.time}}</small>
+                            <p>{{tweet.clip}}</p>
+                        </li>
+                    {% endfor %}
+                    </li>
+                </ol>
+            </div>
+        </div>
+        <div id="market-wrapper">
+            <b>Stock prices for the last 24 hours</b><br/>
+            {{ history|json_script:"history" }}
+            <canvas id="market" width="200" height="200"></canvas>
+        </div>
+    </body>
+
+    <script>
+        const value = JSON.parse(document.getElementById('history').textContent);
+        var yest = new Date(new Date().getTime() - (24 * 60 * 60 * 1000));
+        var now = new Date()
+
+        var labels = [];
+
+        while(yest < now){
+            labels.push(yest.getHours() + ":"+yest.getMinutes());
+            yest = new Date(yest.getTime() + 5*60000);
+        }
+
+        var ctx = document.getElementById('market').getContext('2d');
+        var myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: value
+            },
+            options: {              
+                responsive:true,
+                maintainAspectRatio: false ,
+                animation: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+        </script>
+
+</html>
