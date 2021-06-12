@@ -37,6 +37,10 @@ def getNews(request):
     return JsonResponse({"data":blurp})
 
 def buy(request):
+
+    if datetime(2021, 6, 14, 9, 0, 0) < datetime.now():
+        return JsonResponse({"success":False}) 
+
     body = request.body.decode('utf-8')
     post = json.loads(body)
     print(body)
@@ -83,6 +87,9 @@ def buy(request):
     }})
 
 def sell(request):
+    if datetime(2021, 6, 14, 9, 0, 0) < datetime.now():
+        return JsonResponse({"success":False}) 
+
     body = request.body.decode('utf-8')
     post = json.loads(body)
     print(body)
@@ -236,9 +243,9 @@ def get_leaderboard():
     all = Investor.objects.all()
     l = [
         {"name":x.name,
-            "money":round(x.money,2),
-            "portfolio": round(x.getWorth(),2),
-            "total": round(x.money + x.getWorth(),2)
+            "money":x.money,
+            "portfolio": x.getWorth(),
+            "total": x.money + x.getWorth()
         } for x in all
     ]
     l.sort(key = s)
