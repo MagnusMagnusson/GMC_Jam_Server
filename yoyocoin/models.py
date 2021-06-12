@@ -1,6 +1,9 @@
 from django.db import models
-from django.db.models import  Sum
+from django.db.models import  Sum, base
 import decimal
+import random
+from datetime import datetime, timedelta
+from django.utils import timezone
 
 # Create your models here.
 
@@ -17,7 +20,6 @@ class Investor(models.Model):
         return [x for x in transactions]
     def getShare(self, code):
         transactions = self.transaction_set.filter(stock = code).values("stock").annotate(Sum("amount"))
-        print(transactions)
         return [x for x in transactions]
     def getWorth(self):
         shares = self.getShares()
@@ -42,6 +44,42 @@ class Value(models.Model):
     basevalue = models.DecimalField(decimal_places=2, max_digits=65)
     targetvalue = models.DecimalField(decimal_places=2, max_digits=65)
     
+    def updatePrice(self, time):
+            latest = self.value_set.all().last("time")
+            prevTime = latest.time
+            now = timezone.now()
+            aMinute = timedelta(minutes = 1)
+            while(latest.time < now):
+                r0 = decimal.Decimal(random.random()*random.random() * 2 - random.random()*random.random()*1.95)
+                r1 = decimal.Decimal(random.randint(30,90))
+                tweets = Tweet.objects.all().filter(time__lte = now).filter(time__gte = latest.time)
+                vc = 0
+                for tweet in tweets:
+                    vc += tweet.valueChange
+                tv = latest.targetvalue + vc * decimal.Decimal(self.mediaDrive)
+
+                nextcoin = Value()
+                basevalue = latest.basevalue + ((tv * decimal.Decimal(self.shares/self.baseshares) - latest.basevalue)/r1)
+                if basevalue:
+                    basevalue /= 2
+                nextcoin.basevalue = basevalue
+                nextcoin.value = max(1, basevalue)
+                nextcoin.targetvalue = tv + r0
+                nextcoin.stock = latest.stock
+                nextcoin.time = prevTime + aMinute
+                nextcoin.save()
+
+                latest = nextcoin
+                prevTime += aMinute
+
+    @staticmethod
+    def updateAllPrices():
+        latest = Value.objects.all().last("time").time
+        now = timezone.now()
+        if latest < now:
+            for comp in Company.objects.all():
+                comp.updatePrice()
+
 
 class Transaction(models.Model):
     id = models.BigAutoField(primary_key=True)
