@@ -11,6 +11,8 @@ class Command(BaseCommand):
     help = 'Updates the YoYocoin base value'
 
     def handle(self, *args, **options):
+        if datetime(2021, 6, 14, 9, 0, 0) < datetime.now():
+            return False
         for comp in Company.objects.all():
             latest = comp.value_set.all().order_by("-time")
             
