@@ -18,11 +18,14 @@ information or keys and should not be included in source control.
 ## Jam_40
 
 A highscore server for "The Crimson Guild's Glamorous Guest List", my entry in to the GMC jam 40. [It has its own repository](https://github.com/MagnusMagnusson/CG_GuestList_Jam40) which
-includes an earlier copy of this server. That project is probably broken as I fiddled a bit with it after the jam and didn't finish synchronizing my changes everywhere, so 
-chances are it doesn't work. 
+includes an earlier copy of this server. That project is probably broken as I fiddled a bit with it after the jam and didn't complete the transition from the old jam_40 server to the new one, and so it is likely broken. 
 
 ## YoYoCoin Market
 
 A fictional stock-market that I submitted to the GMC Jam 41. You'll need to initialize the companies and the news stories and give them some starting value. Currently it updates once per minute via 
 a cron job, or by manually calling the "updatePrice" management function. Players are allowed to create account and then use those to buy and sell to their hearts content on the
 very exploitable stock market. 
+
+## jam42_babel 
+
+A highscore server for "Babel: ACLTBBMDBGIDOHH", a tower stacking game entered in to the GMC jam #42. The game is still operational and is running on Opera GX at [this link](https://gxc.gg/games/53135680-2510-4825-93f2-d385a790f260/). 
