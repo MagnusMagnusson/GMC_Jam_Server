@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.http import HttpResponse
+from django.conf import settings
 
 from django.template import loader
 from yoyocoin.models import Company, Value, Tweet, Investor, Transaction
@@ -8,24 +9,28 @@ from yoyocoin.secrets import APIKEY
 import decimal
 import hashlib
 from datetime import datetime, tzinfo
-from datetime import timedelta, timezone
+from datetime import timedelta
+from django.utils import timezone 
 import json
 import random
 
 # Create your views here.
 
 def getMarket(request):
+    Company.updateAllPrices() # Lazy Price Updating
     companies = Company.objects.all()
+    values = Value.objects.filter(time__gte = timezone.make_aware(datetime.now() - timedelta(days = 1)))
+    print(len(values))
+    cl = {}
+    for c in companies:
+        cl[c.id] = []
+    for v in values:
+        cl[v.stock_id].append({"value":v.value})
     data = [
         {
             "name": c.name,
             "shares": c.code,
-            "history":[
-                {
-                    "value" : v.value
-                }
-                for v in c.value_set.filter(time__gte =  (datetime.now() - timedelta(days = 1)))
-            ][::3]
+            "history":cl[c.id]
         }
             for c in companies
     ]
@@ -37,13 +42,13 @@ def getNews(request):
     return JsonResponse({"data":blurp})
 
 def buy(request):
-
-    if datetime(2021, 6, 14, 9, 0, 0) < datetime.now():
-        return JsonResponse({"success":False}) 
+    Company.updateAllPrices() # Lazy Price Updating
+    now = datetime(2021, 6, 21, 12, 0, 0)
+    if not settings.DEBUG and (datetime(2021, 6, 21, 12, 0, 0) < datetime.now() or now < datetime(2021, 6, 14, 12, 0, 0)):
+        return JsonResponse({"success":False})
 
     body = request.body.decode('utf-8')
     post = json.loads(body)
-    print(body)
     if(post["apikey"] != APIKEY):
         return JsonResponse({"success":False})
     token = post['token']
@@ -68,16 +73,13 @@ def buy(request):
     t = Transaction()
     t.time = datetime.now()
     t.investor = investor
-    t.stock = code
+    t.stock = company
     t.amount = shareAmount
     t.price = val
     t.save()
 
     investor.money -= decimal.Decimal(amount)
     investor.save()
-
-    company.shares += shareAmount
-    company.save()
 
     return JsonResponse({"success":True, "data":{
         "share": code,
@@ -87,12 +89,13 @@ def buy(request):
     }})
 
 def sell(request):
-    if datetime(2021, 6, 14, 9, 0, 0) < datetime.now():
-        return JsonResponse({"success":False}) 
+    Company.updateAllPrices() # Lazy Price Updating
+    now = datetime(2021, 6, 21, 12, 0, 0)
+    if not settings.DEBUG and (datetime(2021, 6, 21, 12, 0, 0) < datetime.now() or now < datetime(2021, 6, 14, 12, 0, 0)):
+        return JsonResponse({"success":False})
 
     body = request.body.decode('utf-8')
     post = json.loads(body)
-    print(body)
     if(post["apikey"] != APIKEY):
         return JsonResponse({"success":False})
     token = post['token']
@@ -110,10 +113,7 @@ def sell(request):
     share = company.value_set.order_by("-time")[0]
 
 
-    owned = investor.getShare(code)
-    print("owned")
-    print(owned[0]["amount__sum"])
-    print(amount)
+    owned = investor.getShare(company)
     if len(owned) == 0 or owned[0]["amount__sum"] < amount:
         return JsonResponse({"success":False})
 
@@ -123,16 +123,13 @@ def sell(request):
     t = Transaction()
     t.time = datetime.now()
     t.investor = investor 
-    t.stock = code
+    t.stock = company
     t.amount = -amount
     t.price = val
     t.save()
 
     investor.money += decimal.Decimal(moneyAmount) 
     investor.save()
-
-    company.shares -= amount
-    company.save()
 
     return JsonResponse({"success":True, "data":{
         "share": code,
@@ -155,6 +152,7 @@ def userShares(request, user):
     investor = Investor.objects.all().filter(username__iexact = user)
     if(len(investor) == 1):
         transactions = investor[0].getShares()
+        print(transactions)
         return JsonResponse({"money":investor[0].money,"shares":transactions})
     return JsonResponse({"data":len(investor)})
 
@@ -174,10 +172,7 @@ def login(request):
         m.update(bytes(password,"utf-8"))
         m.update(bytes(investor.salt,"utf-8"))
         h = m.digest()
-        print(h)
-        print(investor.password)
         if(str(h) == investor.password):
-            print("yes")
             return JsonResponse({"success":True, "user": {
                 "name": investor.name,
                 "user": investor.username,
@@ -254,11 +249,17 @@ def get_leaderboard():
 
 def valueChart():
     companies = Company.objects.all()
-    yesterday = (datetime.utcnow() - timedelta(days = 1))
+    values = Value.objects.filter(time__gte = timezone.make_aware(datetime.now() - timedelta(days = 1)))[::12]
+    cl = {}
+    for c in companies:
+        cl[c.id] = []
+    for v in values:
+        cl[v.stock__id].append(v.value)
+
     data = [
         {
             "label": c.code,
-            "data":[ v.value for v in c.value_set.filter(time__gte = yesterday)][::5],
+            "data":cl[c.id],
             "fill":False,
             "tension":0.1,
             "borderColor": 'rgb('+str(random.random() * 255)+","+str(random.random() * 255)+","+str(random.random() * 255)+")"
@@ -269,7 +270,7 @@ def valueChart():
 
 
 def template(request):
-
+    Company.updateAllPrices() # Lazy Price Updating
     template = loader.get_template('test.html')
     context = get_leaderboard()
     context["history"] = valueChart() 
