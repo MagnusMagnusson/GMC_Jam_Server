@@ -20,6 +20,7 @@ from django.urls.conf import include
 from jam_40 import views as jam40
 from yoyocoin import views as yoyocoin
 from jam42_babel import urls as jam42
+from get_away_from_iceland import urls as jam49
 
 def ping(request):
     return JsonResponse({"result":True})
@@ -42,5 +43,7 @@ urlpatterns = [
     path('yoyocoin/companies', yoyocoin.companies),
     path('yoyocoin', yoyocoin.template),
 
-    path('jam42/', include(jam42))
+    path('jam42/', include(jam42)),
+
+    path('jam49/', include(jam49))
 ]
